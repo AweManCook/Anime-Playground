@@ -1,2 +1,2 @@
 # Anime-Playground
-rawr
+its AI btw rawr
