@@ -1,44 +1,61 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Anime Arena Clash Tuned</title><style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#050816}iframe{width:100%;height:100%;border:0}</style></head><body><iframe id="game" src="combat_all.html"></iframe><script>
-const patch=`
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Anime Arena Clash Tuned</title><style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#050816}iframe{width:100%;height:100%;border:0}#note{position:fixed;left:8px;bottom:8px;z-index:9999;color:#dbeafe;background:#0f172acc;border:1px solid #fff4;border-radius:10px;padding:6px 10px;font:700 12px system-ui}</style></head><body><iframe id="game" src="combat_all.html"></iframe><div id="note">Loading tuned patch...</div><script>
+const frame=document.getElementById('game'),note=document.getElementById('note');
+const patchCode=`
 (function(){
-  if(window.__tunedPatch)return; window.__tunedPatch=1;
-  for(const c of CH){
-    if(c.n==='Rubber Captain'){c.sp='stretch';c.move='Gum-Gum Mid Punch';}
-    if(c.n==='Adaptation General'){c.move='Adaptation Counter';}
+ if(typeof F==='undefined'||typeof CH==='undefined'||typeof build==='undefined') throw new Error('game not ready');
+ if(window.__tunedPatch2) return 'already patched';
+ window.__tunedPatch2=1;
+ for(const c of CH){
+  if(c.n==='Rubber Captain'){c.sp='stretch';c.move='Gum-Gum Mid Punch'}
+  if(c.n==='Adaptation General'){c.move='Adaptation Counter'}
+ }
+ build();
+ const oldSpecial=F.prototype.special;
+ F.prototype.special=function(o){
+  if(this.cd)return;
+  const d=this.dir,s=this.f.sp;
+  call(this.f.move||this.f.n+' SPECIAL');
+  sfx('sp');
+  if(s==='adapt'){
+   this.cd=210;this.adapt=150;
+   const rx=d>0?this.cx()+25:this.cx()-155,ry=this.cy()-72,rw=130,rh=145;
+   box(rx,ry,rw,rh,'#e5e7eb',26);
+   burst(this.cx(),this.cy(),this.f.c,34);
+   if(rect(o.x,o.y,o.w,o.h,rx,ry,rw,rh))hit(this,o,18,26,12,true);
+   return;
   }
-  if(typeof build==='function') build();
-  const oldSpecial=F.prototype.special;
-  F.prototype.special=function(o){
-    if(this.cd)return;
-    const d=this.dir,s=this.f.sp;
-    call(this.f.move||this.f.n+' SPECIAL');
-    sfx('sp');
-    if(s==='adapt'){
-      this.cd=210; this.adapt=150;
-      const rx=d>0?this.cx()+25:this.cx()-155, ry=this.cy()-72, rw=130, rh=145;
-      box(rx,ry,rw,rh,'#e5e7eb',26);
-      burst(this.cx(),this.cy(),this.f.c,34);
-      if(rect(o.x,o.y,o.w,o.h,rx,ry,rw,rh)) hit(this,o,18,26,12,true);
-      return;
-    }
-    if(s==='stretch'){
-      this.cd=58;
-      const rx=d>0?this.cx()+30:this.cx()-250, ry=this.cy()-32, rw=220, rh=64;
-      box(rx,ry,rw,rh,'#fecaca',18);
-      slash(this.cx()+d*95,this.cy(),this.f.c,false);
-      if(rect(o.x,o.y,o.w,o.h,rx,ry,rw,rh)) hit(this,o,10,10,45,false);
-      return;
-    }
-    if(s==='cards'||s==='nails'){
-      this.cd=44;
-      const n=s==='nails'?4:5;
-      for(let i=0;i<n;i++) bul.push({own:this,x:this.cx(),y:this.cy()-22+i*9,vx:d*(s==='cards'?20+i*3:22),vy:s==='nails'?-1+i*.4:0,r:7,d:5,k:5,st:24,life:45});
-      return;
-    }
-    oldSpecial.call(this,o);
-  };
+  if(s==='stretch'){
+   this.cd=58;
+   const rx=d>0?this.cx()+30:this.cx()-250,ry=this.cy()-32,rw=220,rh=64;
+   box(rx,ry,rw,rh,'#fecaca',18);
+   slash(this.cx()+d*95,this.cy(),this.f.c,false);
+   if(rect(o.x,o.y,o.w,o.h,rx,ry,rw,rh))hit(this,o,10,10,45,false);
+   return;
+  }
+  if(s==='cards'||s==='nails'){
+   this.cd=44;
+   const n=s==='nails'?4:5;
+   for(let i=0;i<n;i++)bul.push({own:this,x:this.cx(),y:this.cy()-22+i*9,vx:d*(s==='cards'?20+i*3:22),vy:s==='nails'?-1+i*.4:0,r:7,d:5,k:5,st:24,life:45});
+   return;
+  }
+  oldSpecial.call(this,o);
+ };
+ const oldUpdate=F.prototype.update;
+ F.prototype.update=function(o){this.regen=.14;oldUpdate.call(this,o)};
+ setInterval(()=>{try{if(typeof A!=='undefined'&&A)A.regen=.14;if(typeof B!=='undefined'&&B)B.regen=.14}catch(e){}},250);
+ return 'patched';
 })();
 `;
-const f=document.getElementById('game');
-f.onload=()=>{const s=f.contentDocument.createElement('script');s.textContent=patch;f.contentDocument.body.appendChild(s);};
+function tryPatch(){
+ try{
+  const result=frame.contentWindow.eval(patchCode);
+  note.textContent='Tuned patch loaded: projectiles faster, Rubber punch, Adapt attack, half regen';
+  return true;
+ }catch(e){
+  note.textContent='Waiting for game...';
+  return false;
+ }
+}
+frame.onload=()=>{let tries=0;const timer=setInterval(()=>{tries++;if(tryPatch()||tries>40)clearInterval(timer)},250)};
+setTimeout(()=>{if(!tryPatch()){}},1000);
 </script></body></html>
